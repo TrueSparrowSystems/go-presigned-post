@@ -40,16 +40,12 @@ func GetCredentials() (*Credentials, error) {
 	}, nil
 }
 
-// PolicyOptions represent policy options.
+// PolicyOptions represent options for the policy.
 type PolicyOptions struct {
-	ExpiryInMinutes    int // Expiration time in minutes for the policy.
-	MaxFileSizeInBytes int // Maximum allowed file size in the policy.
-}
-
-// PolicyConditions represent policy conditions.
-type PolicyConditions struct {
-	Acl          string // AWS S3 ACL (Access Control List).
-	CacheControl string // Cache control header.
+	ExpiryInMinutes    int    // Expiration time in minutes for the policy. Default is 10 minutes.
+	MaxFileSizeInBytes int    // Maximum allowed file size in the policy. Default is 10MB.
+	Acl                string // AWS S3 ACL (Access Control List). Default is public-read.
+	CacheControl       string // Cache control header. Default is public, max-age=315360000 (10 years).
 }
 
 // PolicyTemplate is the policy template.
@@ -71,18 +67,17 @@ const PolicyTemplate = `
 
 // Policy represents a new policy.
 type Policy struct {
-	Expiration   string         // Expiration time of the policy.
-	Region       string         // AWS region.
-	Bucket       string         // AWS S3 bucket.
-	Key          string         // Key (file path) for the S3 object.
-	Acl          string         // AWS S3 ACL (Access Control List).
-	Credential   string         // AWS credential information.
-	Algorithm    string         // AWS algorithm for the policy.
-	Date         string         // Date of the policy.
-	C            *Credentials   // AWS credentials.
-	O            *PolicyOptions // Policy options.
-	ContentType  string         // Content type of the S3 object.
-	CacheControl string         // Cache control header.
+	Expiration         string // Expiration time of the policy.
+	Region             string // AWS region.
+	Bucket             string // AWS S3 bucket.
+	Key                string // Key (file path) for the S3 object.
+	Acl                string // AWS S3 ACL (Access Control List).
+	MaxFileSizeInBytes int    // Maximum allowed file size in the policy.
+	Credential         string // AWS credential information.
+	Algorithm          string // AWS algorithm for the policy.
+	Date               string // Date of the policy.
+	ContentType        string // Content type of the S3 object.
+	CacheControl       string // Cache control header.
 }
 
 // String returns the policy as a string.
@@ -93,7 +88,7 @@ func (p *Policy) String() string {
 		p.Bucket,
 		p.Key,
 		p.Acl,
-		p.O.MaxFileSizeInBytes,
+		p.MaxFileSizeInBytes,
 		p.Credential,
 		p.Algorithm,
 		p.Date,
@@ -101,7 +96,6 @@ func (p *Policy) String() string {
 		p.CacheControl,
 	)
 
-	fmt.Println(s1)
 	return s1
 }
 
@@ -127,14 +121,33 @@ const (
 	shortTimeFormat  = "20060102"
 )
 
+// validateAndSetDefaults validates the policy options and sets default values if necessary.
+func validateAndSetDefaults(policyOpts *PolicyOptions) {
+	if policyOpts.ExpiryInMinutes == 0 {
+		policyOpts.ExpiryInMinutes = 10 // 10 minutes
+	}
+	if policyOpts.MaxFileSizeInBytes == 0 {
+		policyOpts.MaxFileSizeInBytes = 10485760 // 10MB
+	}
+	if policyOpts.Acl == "" {
+		policyOpts.Acl = "public-read" // public read
+	}
+	if policyOpts.CacheControl == "" {
+		policyOpts.CacheControl = "public, max-age=315360000" // 10 years
+	}
+}
+
 // PresignedPostObject is used to create a presigned post response.
-func PresignedPostObject(key string, contentType string, policyOpts PolicyOptions, policyConditions PolicyConditions) (PresignedPostRequest, error) {
+func PresignedPostObject(key string, contentType string, policyOpts PolicyOptions) (PresignedPostRequest, error) {
 	creds, err := GetCredentials()
 	if err != nil {
 		return PresignedPostRequest{}, err
 	}
 
-	presignedPost, err := createPresignedPOST(key, contentType, creds, &policyOpts, &policyConditions)
+	// validate the policy options and set defaults
+	validateAndSetDefaults(&policyOpts)
+
+	presignedPost, err := createPresignedPOST(key, contentType, creds, &policyOpts)
 	if err != nil {
 		return PresignedPostRequest{}, err
 	}
@@ -143,13 +156,13 @@ func PresignedPostObject(key string, contentType string, policyOpts PolicyOption
 }
 
 // createPresignedPOST creates a new presigned POST.
-func createPresignedPOST(key string, contentType string, creds *Credentials, policyOpts *PolicyOptions, policyConditions *PolicyConditions) (*PresignedPostRequest, error) {
+func createPresignedPOST(key string, contentType string, creds *Credentials, policyOpts *PolicyOptions) (*PresignedPostRequest, error) {
 	// Create a new policy.
-	policy := createPolicy(key, contentType, creds, policyOpts, policyConditions)
+	policy := createPolicy(key, contentType, creds, policyOpts)
 	// Base64 encode the policy.
 	b64Policy := policy.Base64()
 	// Create the AWS signature for the policy.
-	signature := createSignature(policy.C, policy.Date[:8], b64Policy)
+	signature := createSignature(creds, policy.Date[:8], b64Policy)
 	// Construct the presigned POST URL.
 	postUrl := fmt.Sprintf("https://%s.s3.amazonaws.com/", policy.Bucket)
 	// Construct the presigned POST fields.
@@ -171,28 +184,27 @@ func createPresignedPOST(key string, contentType string, creds *Credentials, pol
 }
 
 // createPolicy creates a new policy.
-func createPolicy(key string, contentType string, creds *Credentials, policyOpts *PolicyOptions, policyConditions *PolicyConditions) *Policy {
+func createPolicy(key string, contentType string, creds *Credentials, policyOpts *PolicyOptions) *Policy {
 	// Calculate the expiration time.
 	t := time.Now().Add(time.Minute * time.Duration(policyOpts.ExpiryInMinutes))
 	// Format time for AWS requirements.
 	formattedShortTime := t.UTC().Format(shortTimeFormat)
 	date := t.UTC().Format(timeFormat)
 	// Construct AWS credential information.
-	cred := fmt.Sprintf("%s/%s/%s/s3/aws4_request", creds.AccessKeyID, formattedShortTime, creds.Region)
+	credential := fmt.Sprintf("%s/%s/%s/s3/aws4_request", creds.AccessKeyID, formattedShortTime, creds.Region)
 	// Create and return the policy.
 	return &Policy{
-		Expiration:   t.UTC().Format(expirationFormat),
-		Region:       creds.Region,
-		Bucket:       creds.Bucket,
-		Key:          key,
-		Acl:          policyConditions.Acl,
-		Credential:   cred,
-		Algorithm:    "AWS4-HMAC-SHA256",
-		Date:         date,
-		C:            creds,
-		O:            policyOpts,
-		ContentType:  contentType,
-		CacheControl: policyConditions.CacheControl,
+		Expiration:         t.UTC().Format(expirationFormat),
+		Region:             creds.Region,
+		Bucket:             creds.Bucket,
+		Key:                key,
+		Acl:                policyOpts.Acl,
+		MaxFileSizeInBytes: policyOpts.MaxFileSizeInBytes,
+		Credential:         credential,
+		Algorithm:          "AWS4-HMAC-SHA256",
+		Date:               date,
+		ContentType:        contentType,
+		CacheControl:       policyOpts.CacheControl,
 	}
 }
 
