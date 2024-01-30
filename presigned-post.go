@@ -22,7 +22,7 @@ type Credentials struct {
 func GetCredentials() (*Credentials, error) {
 	// Get AWS credentials from environment variables.
 	region := os.Getenv("AWS_REGION")
-	bucket := os.Getenv("AWS_S3_USER_ASSET_BUCKET")
+	bucket := os.Getenv("AWS_S3_BUCKET")
 	accessKeyID := os.Getenv("AWS_ACCESS_KEY_ID")
 	secretAccessKey := os.Getenv("AWS_SECRET_ACCESS_KEY")
 
@@ -69,7 +69,7 @@ const PolicyTemplate = `
 }
 `
 
-// Policy represents a new policy for uploading sounds.
+// Policy represents a new policy.
 type Policy struct {
 	Expiration   string         // Expiration time of the policy.
 	Region       string         // AWS region.
