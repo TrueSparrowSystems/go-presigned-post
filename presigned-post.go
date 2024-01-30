@@ -10,17 +10,17 @@ import (
 	"time"
 )
 
-// Credentials represent AWS credentials and config.
-type Credentials struct {
+// AwsCredentialsAndConfig represent AWS credentials and config.
+type AwsCredentialsAndConfig struct {
 	Region          string // AWS region.
 	Bucket          string // AWS S3 bucket.
 	AccessKeyID     string // AWS access key.
 	SecretAccessKey string // AWS secret access key.
 }
 
-// GetCredentials from the environment.
-func GetCredentials() (*Credentials, error) {
-	// Get AWS credentials from environment variables.
+// Get AWS Credentials and config from the environment.
+func GetAwsCredentialsAndConfig() (*AwsCredentialsAndConfig, error) {
+	// Get AWS credentials and config from environment variables.
 	region := os.Getenv("AWS_REGION")
 	bucket := os.Getenv("AWS_S3_BUCKET")
 	accessKeyID := os.Getenv("AWS_ACCESS_KEY_ID")
@@ -32,7 +32,7 @@ func GetCredentials() (*Credentials, error) {
 	}
 
 	// Return the credentials.
-	return &Credentials{
+	return &AwsCredentialsAndConfig{
 		Region:          region,
 		Bucket:          bucket,
 		AccessKeyID:     accessKeyID,
@@ -139,7 +139,7 @@ func validateAndSetDefaults(policyOpts *PolicyOptions) {
 
 // PresignedPostObject is used to create a presigned post response.
 func PresignedPostObject(key string, contentType string, policyOpts PolicyOptions) (PresignedPostRequest, error) {
-	creds, err := GetCredentials()
+	creds, err := GetAwsCredentialsAndConfig()
 	if err != nil {
 		return PresignedPostRequest{}, err
 	}
@@ -156,7 +156,7 @@ func PresignedPostObject(key string, contentType string, policyOpts PolicyOption
 }
 
 // createPresignedPOST creates a new presigned POST.
-func createPresignedPOST(key string, contentType string, creds *Credentials, policyOpts *PolicyOptions) (*PresignedPostRequest, error) {
+func createPresignedPOST(key string, contentType string, creds *AwsCredentialsAndConfig, policyOpts *PolicyOptions) (*PresignedPostRequest, error) {
 	// Create a new policy.
 	policy := createPolicy(key, contentType, creds, policyOpts)
 	// Base64 encode the policy.
@@ -184,7 +184,7 @@ func createPresignedPOST(key string, contentType string, creds *Credentials, pol
 }
 
 // createPolicy creates a new policy.
-func createPolicy(key string, contentType string, creds *Credentials, policyOpts *PolicyOptions) *Policy {
+func createPolicy(key string, contentType string, creds *AwsCredentialsAndConfig, policyOpts *PolicyOptions) *Policy {
 	// Calculate the expiration time.
 	t := time.Now().Add(time.Minute * time.Duration(policyOpts.ExpiryInMinutes))
 	// Format time for AWS requirements.
@@ -209,7 +209,7 @@ func createPolicy(key string, contentType string, creds *Credentials, policyOpts
 }
 
 // createSignature creates the signature for a string.
-func createSignature(creds *Credentials, formattedShortTime, stringToSign string) string {
+func createSignature(creds *AwsCredentialsAndConfig, formattedShortTime, stringToSign string) string {
 	// Calculate HMAC-SHA256 for each step of the AWS signature process.
 	h1 := calculateHMACSHA256([]byte("AWS4"+creds.SecretAccessKey), []byte(formattedShortTime))
 	h2 := calculateHMACSHA256(h1, []byte(creds.Region))
