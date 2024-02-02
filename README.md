@@ -116,21 +116,13 @@ type PresignedPostRequestFields struct {
 
 Represents presigned POST information.
 
-### `Policy`
-
-```go
-type Policy struct {
-	Expiration string // Expiration time of the policy.
-	Bucket     string // AWS S3 bucket.
-	Key        string // Key (file path) for the S3 object.
-	Credential string // AWS credential information.
-	Algorithm  string // AWS algorithm for the policy.
-	Date       string // Date of the policy.
-}
-```
 
 Represents a new policy.
 
+## Contributing
+
+If you find a bug or have an improvement suggestion, feel free to open an issue or submit a pull request.
+
 ## License
 
-This package is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
