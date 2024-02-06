@@ -109,11 +109,6 @@ type PresignedPostRequestFields struct {
 }
 ```
 
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-
 ## Contribution
 
 We welcome more helping hands to make the package better. Feel free to report issues, and raise PRs for fixes & enhancements.
