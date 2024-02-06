@@ -1,5 +1,5 @@
 
-# Go Presigned Post
+# AWS S3 Presigned Post in Go
 
 
 The `go-presigned-post` package provides a convenient way to generate a presigned POST URL and fields for uploading files to Amazon S3 using HTTP POST requests.
