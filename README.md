@@ -116,6 +116,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contribution
 
-We welcome more helping hands to make Slackmin better. Feel free to report issues, raise PRs for fixes & enhancements.
+We welcome more helping hands to make the package better. Feel free to report issues, and raise PRs for fixes & enhancements.
 
 <p align="left">Built with :heart: by <a href="https://truesparrow.com/" target="_blank">True Sparrow</a></p>
