@@ -22,7 +22,7 @@ type PolicyOptions struct {
 	ExpiryInSeconds    *int   // Expiration time in seconds for the policy. Default is 3600.
 	ContentType        string // Content type of the S3 object.
 	MaxFileSizeInBytes int    // Maximum allowed file size in the policy.
-	Acl                string // AWS S3 ACL (Access Control List). Default is private.
+	Acl                string // AWS S3 ACL (Access Control List). Default is private. Possible values are private, public-read, public-read-write, authenticated-read, and bucket-owner-read.
 	CacheControl       string // Cache control header. Default is none.
 }
 
