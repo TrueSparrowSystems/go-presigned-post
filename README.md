@@ -1,8 +1,7 @@
 
-# Go Presigned Post
+# AWS S3 Presigned POST in Go
 
-
-The `go-presigned-post` package provides a convenient way to generate a presigned POST URL and fields for uploading files to Amazon S3 using HTTP POST requests.
+The `go-presigned-post` package provides a convenient way to generate a presigned POST URL to securely upload files to Amazon S3 using HTTP POST requests.
 
 ## Installation
 
@@ -81,8 +80,6 @@ type AwsCredentialsAndConfig struct {
 }
 ```
 
-Represents AWS credentials and configuration.
-
 ### `PolicyOptions`
 
 ```go
@@ -94,8 +91,6 @@ type PolicyOptions struct {
 	CacheControl        string  // Cache control header. Default is none.
 }
 ```
-
-Represents options for the policy.
 
 ### `PresignedPostRequestFields`
 
@@ -114,15 +109,8 @@ type PresignedPostRequestFields struct {
 }
 ```
 
-Represents presigned POST information.
+## Contribution
 
+We welcome more helping hands to make the package better. Feel free to report issues, and raise PRs for fixes & enhancements.
 
-Represents a new policy.
-
-## Contributing
-
-If you find a bug or have an improvement suggestion, feel free to open an issue or submit a pull request.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+<p align="left">Built with :heart: by <a href="https://truesparrow.com/" target="_blank">True Sparrow</a></p>
