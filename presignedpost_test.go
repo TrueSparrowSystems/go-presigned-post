@@ -17,6 +17,8 @@ type TestCase struct {
 	number                     int
 	title                      string
 	expectedResponseStatusCode int
+	key                        string
+	fileUploadPath             string
 }
 
 func TestPresignedPostObject(t *testing.T) {
@@ -24,8 +26,6 @@ func TestPresignedPostObject(t *testing.T) {
 	if err != nil {
 		t.Fatal("Error loading .env file")
 	}
-
-	key := "bird.jpeg"
 
 	awsCredentialsAndConfig := AwsCredentialsAndConfig{
 		Region:          os.Getenv("AWS_REGION"),
@@ -46,15 +46,19 @@ func TestPresignedPostObject(t *testing.T) {
 
 	executeTestCase(TestCase{
 		number:                     1,
-		title:                      "Upload a file to S3 using the presigned post URL",
+		title:                      "Upload an image file to S3",
 		expectedResponseStatusCode: 204,
-	}, key, awsCredentialsAndConfig, policyOpts, t)
+		key:                        "bird-image.jpeg",
+		fileUploadPath:             "assets/bird-image.jpeg",
+	}, awsCredentialsAndConfig, policyOpts, t)
 
 	executeTestCase(TestCase{
 		number:                     2,
 		title:                      "Upload a file with a greater file size than the max file size",
 		expectedResponseStatusCode: 400,
-	}, key, awsCredentialsAndConfig, PolicyOptions{
+		key:                        "bird-image.jpeg",
+		fileUploadPath:             "assets/bird-image.jpeg",
+	}, awsCredentialsAndConfig, PolicyOptions{
 		ExpiryInSeconds:    &expiryInSeconds,
 		Acl:                "public-read",
 		ContentType:        "image/jpeg",
@@ -62,24 +66,54 @@ func TestPresignedPostObject(t *testing.T) {
 		CacheControl:       "public, max-age=315360000",
 	}, t)
 
-	expiryInSeconds = 0 // 0 seconds
+	expiryIn0Seconds := 0 // 0 seconds
 	executeTestCase(TestCase{
 		number:                     3,
 		title:                      "Upload a file after the expiry time",
 		expectedResponseStatusCode: 403,
-	}, key, awsCredentialsAndConfig, PolicyOptions{
-		ExpiryInSeconds:    &expiryInSeconds,
+		key:                        "bird-image.jpeg",
+		fileUploadPath:             "assets/bird-image.jpeg",
+	}, awsCredentialsAndConfig, PolicyOptions{
+		ExpiryInSeconds:    &expiryIn0Seconds,
 		Acl:                "public-read",
 		ContentType:        "image/jpeg",
 		MaxFileSizeInBytes: 10485760, // 10MB
 		CacheControl:       "public, max-age=315360000",
 	}, t)
+
+	executeTestCase(TestCase{
+		number:                     4,
+		title:                      "Upload a zip file to S3",
+		expectedResponseStatusCode: 204,
+		key:                        "zipped-bird-image.zip",
+		fileUploadPath:             "assets/zipped-bird-image.zip",
+	}, awsCredentialsAndConfig, PolicyOptions{
+		ExpiryInSeconds:    &expiryInSeconds,
+		Acl:                "public-read",
+		ContentType:        "application/zip",
+		MaxFileSizeInBytes: 10485760, // 10MB
+		CacheControl:       "public, max-age=315360000",
+	}, t)
+
+	executeTestCase(TestCase{
+		number:                     5,
+		title:                      "Upload a csv file to S3",
+		expectedResponseStatusCode: 204,
+		key:                        "sample.csv",
+		fileUploadPath:             "assets/sample.csv",
+	}, awsCredentialsAndConfig, PolicyOptions{
+		ExpiryInSeconds:    &expiryInSeconds,
+		Acl:                "public-read",
+		ContentType:        "text/csv",
+		MaxFileSizeInBytes: 10485760, // 10MB
+		CacheControl:       "public, max-age=315360000",
+	}, t)
 }
 
-func executeTestCase(testCase TestCase, key string, awsCredentialsAndConfig AwsCredentialsAndConfig, policyOpts PolicyOptions, t *testing.T) {
+func executeTestCase(testCase TestCase, awsCredentialsAndConfig AwsCredentialsAndConfig, policyOpts PolicyOptions, t *testing.T) {
 	fmt.Printf("** Test Case: %d - %s **\n", testCase.number, testCase.title)
 
-	postUrl, presignedPostRequestFields, err := PresignedPostObject(key, awsCredentialsAndConfig, policyOpts)
+	postUrl, presignedPostRequestFields, err := PresignedPostObject(testCase.key, awsCredentialsAndConfig, policyOpts)
 	if err != nil {
 		t.Errorf("Error generating presigned post object: %v", err)
 	}
@@ -90,7 +124,7 @@ func executeTestCase(testCase TestCase, key string, awsCredentialsAndConfig AwsC
 	}
 
 	// Assert that presignedPostRequestFields has necessary fields
-	if presignedPostRequestFields.Key != key ||
+	if presignedPostRequestFields.Key != testCase.key ||
 		presignedPostRequestFields.Bucket != awsCredentialsAndConfig.Bucket ||
 		presignedPostRequestFields.ContentType != policyOpts.ContentType ||
 		presignedPostRequestFields.CacheControl != policyOpts.CacheControl ||
@@ -98,8 +132,7 @@ func executeTestCase(testCase TestCase, key string, awsCredentialsAndConfig AwsC
 		t.Error("Presigned post fields do not match expected values")
 	}
 
-	fileUploadPath := "assets/bird-image.jpeg"
-	responseStatusCode, err := makeFormPostRequest(postUrl, presignedPostRequestFields, fileUploadPath)
+	responseStatusCode, err := makeFormPostRequest(postUrl, presignedPostRequestFields, testCase.fileUploadPath)
 	if err != nil {
 		t.Errorf("Error uploading file: %v", err)
 	}
